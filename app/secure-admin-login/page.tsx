@@ -59,7 +59,7 @@ export default function AdminLoginPage() {
               id="email"
               type="email"
               className="form-input"
-              placeholder="boutemedjetfaiza34@gmail.com"
+              placeholder="أدخل البريد الإلكتروني"
               value={email}
               onChange={e => setEmail(e.target.value)}
               disabled={isPending}
