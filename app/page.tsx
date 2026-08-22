@@ -1,69 +1,80 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import Link from 'next/link';
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.tsx</code> file.
+    <div className="public-layout">
+      {/* Header */}
+      <header className="public-header">
+        <div className="public-header-logo">
+          <div className="header-logo-box">
+            <img src="/logo.png" alt="Logo" className="site-logo-img" />
+          </div>
+          <span className="logo-text">دروس الدعم في العلوم الطبيعية</span>
+        </div>
+      </header>
+
+      {/* Main */}
+      <main className="public-main">
+        {/* Hero */}
+        <div className="hero">
+          <div className="hero-logo-wrapper">
+            <img src="/logo.png" alt="Boutemdjet Logo" className="site-logo-hero" />
+          </div>
+
+          <div className="hero-badge">
+            <span>🧬</span>
+            <span>دروس الدعم في العلوم الطبيعية</span>
+          </div>
+
+          <h1 className="hero-title">
+            الأستاذة بوتمجت فايزة
           </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          <h2 className="hero-subtitle">
+            علوم الطبيعة و الحياة
+          </h2>
+
+          <p className="hero-description">
+            سجّل في الفوج المناسب لك واحتفظ بمعلومات التسجيل.
           </p>
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Group Cards */}
+        <div className="groups-grid">
+          {/* Group 1 */}
+          <Link href="/register/group-1" prefetch={true} style={{ display: 'block' }}>
+            <div className="group-card">
+              <div className="group-card-icon-box">
+                🔬
+              </div>
+              <div className="group-card-number">الفوج 1</div>
+              <div className="group-card-label">المجموعة الأولى</div>
+              <span className="btn btn-primary" style={{ display: 'inline-flex', width: '100%' }}>
+                التسجيل في الفوج 1
+              </span>
+            </div>
+          </Link>
+
+          {/* Group 2 */}
+          <Link href="/register/group-2" prefetch={true} style={{ display: 'block' }}>
+            <div className="group-card">
+              <div className="group-card-icon-box">
+                🧪
+              </div>
+              <div className="group-card-number">الفوج 2</div>
+              <div className="group-card-label">المجموعة الثانية</div>
+              <span className="btn btn-primary" style={{ display: 'inline-flex', width: '100%' }}>
+                التسجيل في الفوج 2
+              </span>
+            </div>
+          </Link>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="public-footer">
+        دروس الدعم — الأستاذة بوتمجت فايزة · علوم الطبيعة والحياة
+      </footer>
     </div>
   );
 }

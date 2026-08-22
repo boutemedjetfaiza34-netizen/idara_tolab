@@ -1,7 +1,10 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Allow xlsx to be bundled (it uses some Node APIs)
+  serverExternalPackages: [],
+  // Disable x-powered-by header
+  poweredByHeader: false,
 };
 
 export default nextConfig;
