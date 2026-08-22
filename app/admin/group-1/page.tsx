@@ -7,6 +7,7 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function Group1Page() {
   const result = await getRegistrations('GROUP_1');

@@ -1,6 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 import { createClient, createAdminClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import {
   getLocalRegistrations,
@@ -98,6 +99,12 @@ export async function registerStudent(
           group,
         });
 
+        try {
+          revalidatePath('/admin', 'layout');
+        } catch {
+          // ignore
+        }
+
         return { success: true, data: { group } };
       }
     } catch (err) {
@@ -120,6 +127,12 @@ export async function registerStudent(
       alreadyRegistered: true,
       existingRegistration: localResult.existing,
     };
+  }
+
+  try {
+    revalidatePath('/admin', 'layout');
+  } catch {
+    // ignore
   }
 
   return { success: true, data: { group } };
@@ -251,6 +264,12 @@ export async function confirmRegistration(id: string): Promise<ActionResult> {
   // 2. Local fallback update
   updateLocalStatus(id, 'CONFIRMED');
 
+  try {
+    revalidatePath('/admin', 'layout');
+  } catch {
+    // ignore
+  }
+
   return { success: true, data: undefined };
 }
 
@@ -275,6 +294,12 @@ export async function unconfirmRegistration(id: string): Promise<ActionResult> {
   // 2. Local fallback update
   updateLocalStatus(id, 'PENDING');
 
+  try {
+    revalidatePath('/admin', 'layout');
+  } catch {
+    // ignore
+  }
+
   return { success: true, data: undefined };
 }
 
@@ -296,6 +321,12 @@ export async function deleteRegistration(id: string): Promise<ActionResult> {
 
   // 2. Local fallback delete
   deleteLocalRegistration(id);
+
+  try {
+    revalidatePath('/admin', 'layout');
+  } catch {
+    // ignore
+  }
 
   return { success: true, data: undefined };
 }
