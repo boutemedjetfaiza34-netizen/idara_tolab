@@ -11,8 +11,8 @@ import {
 } from '@/lib/db';
 import type { Registration, RegisterFormData, ActionResult, RegistrationGroup, Stats } from '@/lib/types';
 
-const ADMIN_EMAIL = 'boutemedjetfaiza34@gmail.com';
-const ADMIN_PASS = 'PRbou123123';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'boutemedjetfaiza34@gmail.com';
+const ADMIN_PASS = process.env.ADMIN_PASSWORD ?? 'PRbou123123';
 const SESSION_COOKIE = 'boutimjit_admin_session';
 
 export type RegisterResult =

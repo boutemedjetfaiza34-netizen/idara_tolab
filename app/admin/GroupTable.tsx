@@ -288,11 +288,11 @@ export default function GroupTable({ registrations, groupNumber, groupLabel }: P
                           {reg.status === 'CONFIRMED' ? '✅' : '⏳'} {STATUS_LABELS[reg.status]}
                         </span>
                       </td>
-                      <td className="td-date">
-                        {new Date(reg.created_at).toLocaleDateString('ar-DZ', {
+                      <td className="td-date" suppressHydrationWarning>
+                        {new Date(reg.created_at).toLocaleString('fr-DZ', {
                           year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
@@ -353,12 +353,12 @@ export default function GroupTable({ registrations, groupNumber, groupLabel }: P
                       <span>📞</span>
                       <span dir="ltr">{reg.phone}</span>
                     </a>
-                    <span className="student-date-pill">
+                    <span className="student-date-pill" suppressHydrationWarning>
                       <span>📅</span>
-                      <span>
-                        {new Date(reg.created_at).toLocaleDateString('ar-DZ', {
-                          month: 'short',
-                          day: 'numeric',
+                      <span suppressHydrationWarning>
+                        {new Date(reg.created_at).toLocaleString('fr-DZ', {
+                          month: '2-digit',
+                          day: '2-digit',
                           hour: '2-digit',
                           minute: '2-digit',
                         })}

@@ -1,32 +1,48 @@
-import fs from 'fs';
-import path from 'path';
 import type { Registration, RegistrationGroup } from './types';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
-const DATA_FILE = path.join(DATA_DIR, 'registrations.json');
+// In-memory fallback for environments where fs is not writable (e.g. Vercel serverless)
+const memoryStore: Registration[] = [];
 
-function ensureDataFile() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-  if (!fs.existsSync(DATA_FILE)) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify([], null, 2), 'utf-8');
+let fsModule: typeof import('fs') | null = null;
+let pathModule: typeof import('path') | null = null;
+let DATA_FILE = '';
+
+function initFs() {
+  if (fsModule) return;
+  try {
+    // Dynamic require to avoid Vercel bundling issues
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    fsModule = require('fs');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    pathModule = require('path');
+    DATA_FILE = pathModule!.join(process.cwd(), 'data', 'registrations.json');
+
+    // Test write access
+    const dir = pathModule!.join(process.cwd(), 'data');
+    if (!fsModule!.existsSync(dir)) {
+      fsModule!.mkdirSync(dir, { recursive: true });
+    }
+    if (!fsModule!.existsSync(DATA_FILE)) {
+      fsModule!.writeFileSync(DATA_FILE, JSON.stringify([], null, 2), 'utf-8');
+    }
+  } catch {
+    fsModule = null;
   }
 }
 
 export function getLocalRegistrations(): Registration[] {
-  ensureDataFile();
+  initFs();
+  if (!fsModule) return [...memoryStore];
   try {
-    const raw = fs.readFileSync(DATA_FILE, 'utf-8');
+    const raw = fsModule.readFileSync(DATA_FILE, 'utf-8');
     return JSON.parse(raw);
   } catch {
-    return [];
+    return [...memoryStore];
   }
 }
 
 export function findRegistrationByPhone(phone: string, group: RegistrationGroup): Registration | undefined {
-  const list = getLocalRegistrations();
-  return list.find(r => r.phone === phone && r.group === group);
+  return getLocalRegistrations().find(r => r.phone === phone && r.group === group);
 }
 
 export function saveLocalRegistration(item: {
@@ -35,21 +51,13 @@ export function saveLocalRegistration(item: {
   phone: string;
   group: RegistrationGroup;
 }): { success: true; data: Registration } | { success: false; error: string; existing?: Registration } {
-  ensureDataFile();
+  initFs();
   const list = getLocalRegistrations();
 
-  // Check duplicate phone in same group
-  const duplicate = list.find(
-    r => r.phone === item.phone && r.group === item.group
-  );
-
+  const duplicate = list.find(r => r.phone === item.phone && r.group === item.group);
   if (duplicate) {
     const groupLabel = item.group === 'GROUP_1' ? 'الفوج 1' : 'الفوج 2';
-    return {
-      success: false,
-      error: `هذا الرقم مسجل مسبقًا في ${groupLabel}.`,
-      existing: duplicate,
-    };
+    return { success: false, error: `هذا الرقم مسجل مسبقًا في ${groupLabel}.`, existing: duplicate };
   }
 
   const newRecord: Registration = {
@@ -64,31 +72,53 @@ export function saveLocalRegistration(item: {
   };
 
   list.unshift(newRecord);
-  fs.writeFileSync(DATA_FILE, JSON.stringify(list, null, 2), 'utf-8');
+  persist(list);
 
   return { success: true, data: newRecord };
 }
 
 export function updateLocalStatus(id: string, status: 'PENDING' | 'CONFIRMED'): boolean {
-  ensureDataFile();
   const list = getLocalRegistrations();
   const item = list.find(r => r.id === id);
   if (!item) return false;
-
   item.status = status;
   item.confirmed_at = status === 'CONFIRMED' ? new Date().toISOString() : null;
+  persist(list);
 
-  fs.writeFileSync(DATA_FILE, JSON.stringify(list, null, 2), 'utf-8');
+  // Update memory store too
+  const memItem = memoryStore.find(r => r.id === id);
+  if (memItem) {
+    memItem.status = status;
+    memItem.confirmed_at = item.confirmed_at;
+  }
   return true;
 }
 
 export function deleteLocalRegistration(id: string): boolean {
-  ensureDataFile();
-  let list = getLocalRegistrations();
-  const initialLen = list.length;
-  list = list.filter(r => r.id !== id);
-  if (list.length === initialLen) return false;
+  const list = getLocalRegistrations();
+  const newList = list.filter(r => r.id !== id);
+  if (newList.length === list.length) return false;
+  persist(newList);
 
-  fs.writeFileSync(DATA_FILE, JSON.stringify(list, null, 2), 'utf-8');
+  // Update memory store too
+  const idx = memoryStore.findIndex(r => r.id === id);
+  if (idx !== -1) memoryStore.splice(idx, 1);
   return true;
+}
+
+function persist(list: Registration[]) {
+  initFs();
+  if (!fsModule) {
+    // Update in-memory store
+    memoryStore.length = 0;
+    memoryStore.push(...list);
+    return;
+  }
+  try {
+    fsModule.writeFileSync(DATA_FILE, JSON.stringify(list, null, 2), 'utf-8');
+  } catch {
+    // Fallback to memory
+    memoryStore.length = 0;
+    memoryStore.push(...list);
+  }
 }
