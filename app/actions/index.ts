@@ -48,7 +48,64 @@ export async function registerStudent(
     return { success: false, error: 'الفوج غير صحيح.' };
   }
 
-  // 1. Always check & save in local persistent DB
+  const groupLabel = group === 'GROUP_1' ? 'الفوج 1' : 'الفوج 2';
+
+  // 1. Supabase Mode (Primary)
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = await createClient();
+
+      // Check if student already registered in this group
+      const { data: existingRecords } = await supabase
+        .from('registrations')
+        .select('*')
+        .eq('phone', cleanPhone)
+        .eq('group', group);
+
+      if (existingRecords && existingRecords.length > 0) {
+        return {
+          success: false,
+          error: `هذا الرقم مسجل مسبقًا في ${groupLabel}.`,
+          alreadyRegistered: true,
+          existingRegistration: existingRecords[0] as Registration,
+        };
+      }
+
+      // Insert new record into Supabase
+      const { error: insertError } = await supabase.from('registrations').insert({
+        first_name: first_name.trim(),
+        last_name: last_name.trim(),
+        phone: cleanPhone,
+        group,
+        status: 'PENDING',
+      });
+
+      if (insertError) {
+        if (insertError.code === '23505') {
+          return {
+            success: false,
+            error: `هذا الرقم مسجل مسبقًا في ${groupLabel}.`,
+            alreadyRegistered: true,
+          };
+        }
+        console.error('Supabase insert error:', insertError);
+      } else {
+        // Also save to local as backup
+        saveLocalRegistration({
+          first_name: first_name.trim(),
+          last_name: last_name.trim(),
+          phone: cleanPhone,
+          group,
+        });
+
+        return { success: true, data: { group } };
+      }
+    } catch (err) {
+      console.error('Supabase exception in registerStudent:', err);
+    }
+  }
+
+  // 2. Local Fallback Mode
   const localResult = saveLocalRegistration({
     first_name: first_name.trim(),
     last_name: last_name.trim(),
@@ -65,33 +122,6 @@ export async function registerStudent(
     };
   }
 
-  // 2. Also save to Supabase if configured
-  if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createClient();
-      const { error } = await supabase.from('registrations').insert({
-        first_name: first_name.trim(),
-        last_name: last_name.trim(),
-        phone: cleanPhone,
-        group,
-        status: 'PENDING',
-      });
-
-      if (error && error.code === '23505') {
-        const existing = findRegistrationByPhone(cleanPhone, group);
-        const groupLabel = group === 'GROUP_1' ? 'الفوج 1' : 'الفوج 2';
-        return {
-          success: false,
-          error: `هذا الرقم مسجل مسبقًا في ${groupLabel}.`,
-          alreadyRegistered: true,
-          existingRegistration: existing,
-        };
-      }
-    } catch (err) {
-      console.warn('Supabase sync error (saved locally):', err);
-    }
-  }
-
   return { success: true, data: { group } };
 }
 
@@ -104,6 +134,25 @@ export async function checkStudentRegistration(
   group: RegistrationGroup
 ): Promise<{ exists: boolean; registration?: Registration }> {
   const cleanPhone = phone.replace(/\s/g, '').trim();
+
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = await createClient();
+      const { data } = await supabase
+        .from('registrations')
+        .select('*')
+        .eq('phone', cleanPhone)
+        .eq('group', group);
+
+      if (data && data.length > 0) {
+        return { exists: true, registration: data[0] as Registration };
+      }
+      return { exists: false };
+    } catch {
+      // fallback
+    }
+  }
+
   const existing = findRegistrationByPhone(cleanPhone, group);
   if (existing) {
     return { exists: true, registration: existing };
@@ -116,9 +165,6 @@ export async function checkStudentRegistration(
 // =======================================
 
 export async function getRegistrations(group: RegistrationGroup): Promise<ActionResult<Registration[]>> {
-  let records: Registration[] = [];
-
-  // Try Supabase if configured
   if (isSupabaseConfigured()) {
     try {
       const supabase = await createAdminClient();
@@ -128,38 +174,47 @@ export async function getRegistrations(group: RegistrationGroup): Promise<Action
         .eq('group', group)
         .order('created_at', { ascending: false });
 
-      if (!error && data && data.length > 0) {
+      if (!error && data !== null) {
         return { success: true, data: data as Registration[] };
       }
-    } catch {
-      // fallback to local
+    } catch (err) {
+      console.error('getRegistrations Supabase error:', err);
     }
   }
 
   // Local persistent DB fallback
-  records = getLocalRegistrations().filter(r => r.group === group);
+  const records = getLocalRegistrations().filter(r => r.group === group);
   return { success: true, data: records };
 }
 
 export async function getStats(): Promise<ActionResult<Stats>> {
-  let allRecords: { group: RegistrationGroup; status: string }[] = [];
-
   if (isSupabaseConfigured()) {
     try {
       const supabase = await createAdminClient();
       const { data, error } = await supabase.from('registrations').select('group, status');
-      if (!error && data && data.length > 0) {
-        allRecords = data as { group: RegistrationGroup; status: string }[];
+      if (!error && data !== null) {
+        const all = data as { group: RegistrationGroup; status: string }[];
+        return {
+          success: true,
+          data: {
+            total: all.length,
+            group1Total: all.filter(r => r.group === 'GROUP_1').length,
+            group2Total: all.filter(r => r.group === 'GROUP_2').length,
+            pendingTotal: all.filter(r => r.status === 'PENDING').length,
+            confirmedTotal: all.filter(r => r.status === 'CONFIRMED').length,
+            group1Pending: all.filter(r => r.group === 'GROUP_1' && r.status === 'PENDING').length,
+            group1Confirmed: all.filter(r => r.group === 'GROUP_1' && r.status === 'CONFIRMED').length,
+            group2Pending: all.filter(r => r.group === 'GROUP_2' && r.status === 'PENDING').length,
+            group2Confirmed: all.filter(r => r.group === 'GROUP_2' && r.status === 'CONFIRMED').length,
+          },
+        };
       }
-    } catch {
-      // fallback to local
+    } catch (err) {
+      console.error('getStats Supabase error:', err);
     }
   }
 
-  if (allRecords.length === 0) {
-    allRecords = getLocalRegistrations();
-  }
-
+  const allRecords = getLocalRegistrations();
   const stats: Stats = {
     total: allRecords.length,
     group1Total: allRecords.filter(r => r.group === 'GROUP_1').length,
@@ -176,58 +231,71 @@ export async function getStats(): Promise<ActionResult<Stats>> {
 }
 
 export async function confirmRegistration(id: string): Promise<ActionResult> {
-  // Update local
-  updateLocalStatus(id, 'CONFIRMED');
-
-  // Update Supabase if configured
+  // 1. Supabase Update
   if (isSupabaseConfigured()) {
     try {
       const supabase = await createAdminClient();
-      await supabase
+      const { error } = await supabase
         .from('registrations')
         .update({ status: 'CONFIRMED', confirmed_at: new Date().toISOString() })
         .eq('id', id);
-    } catch {
-      // ignore
+
+      if (error) {
+        console.error('Supabase confirm error:', error);
+      }
+    } catch (err) {
+      console.error('Supabase confirm exception:', err);
     }
   }
+
+  // 2. Local fallback update
+  updateLocalStatus(id, 'CONFIRMED');
 
   return { success: true, data: undefined };
 }
 
 export async function unconfirmRegistration(id: string): Promise<ActionResult> {
-  // Update local
-  updateLocalStatus(id, 'PENDING');
-
-  // Update Supabase if configured
+  // 1. Supabase Update
   if (isSupabaseConfigured()) {
     try {
       const supabase = await createAdminClient();
-      await supabase
+      const { error } = await supabase
         .from('registrations')
         .update({ status: 'PENDING', confirmed_at: null })
         .eq('id', id);
-    } catch {
-      // ignore
+
+      if (error) {
+        console.error('Supabase unconfirm error:', error);
+      }
+    } catch (err) {
+      console.error('Supabase unconfirm exception:', err);
     }
   }
+
+  // 2. Local fallback update
+  updateLocalStatus(id, 'PENDING');
 
   return { success: true, data: undefined };
 }
 
 export async function deleteRegistration(id: string): Promise<ActionResult> {
-  // Delete local
-  deleteLocalRegistration(id);
-
-  // Delete Supabase if configured
+  // 1. Supabase Delete
   if (isSupabaseConfigured()) {
     try {
       const supabase = await createAdminClient();
-      await supabase.from('registrations').delete().eq('id', id);
-    } catch {
-      // ignore
+      const { error } = await supabase.from('registrations').delete().eq('id', id);
+
+      if (error) {
+        console.error('Supabase delete error:', error);
+        return { success: false, error: 'فشل حذف التسجيل من قاعدة البيانات.' };
+      }
+    } catch (err) {
+      console.error('Supabase delete exception:', err);
     }
   }
+
+  // 2. Local fallback delete
+  deleteLocalRegistration(id);
 
   return { success: true, data: undefined };
 }
@@ -239,7 +307,7 @@ export async function adminSignIn(
   const cleanEmail = email.trim().toLowerCase();
 
   // Instant authentication for admin credentials
-  if (cleanEmail === ADMIN_EMAIL && password === ADMIN_PASS) {
+  if (cleanEmail === ADMIN_EMAIL.toLowerCase() && password === ADMIN_PASS) {
     const cookieStore = await cookies();
     cookieStore.set(SESSION_COOKIE, 'admin_authenticated_' + Date.now(), {
       httpOnly: true,
@@ -252,31 +320,7 @@ export async function adminSignIn(
     return { success: true, data: undefined };
   }
 
-  if (!isSupabaseConfigured()) {
-    return { success: false, error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة.' };
-  }
-
-  try {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
-
-    if (error) {
-      return { success: false, error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة.' };
-    }
-
-    const cookieStore = await cookies();
-    cookieStore.set(SESSION_COOKIE, 'admin_authenticated_' + Date.now(), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7,
-    });
-
-    return { success: true, data: undefined };
-  } catch {
-    return { success: false, error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة.' };
-  }
+  return { success: false, error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة.' };
 }
 
 export async function adminSignOut(): Promise<void> {
