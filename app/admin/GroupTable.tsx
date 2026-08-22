@@ -90,12 +90,19 @@ export default function GroupTable({ registrations, groupNumber, groupLabel }: P
     showFeedback('success', 'تم تأكيد التسجيل بنجاح.');
 
     startTransition(async () => {
-      const result = await confirmRegistration(id);
-      if (!result.success) {
+      try {
+        const result = await confirmRegistration(id);
+        if (!result.success) {
+          setDataList(prev =>
+            prev.map(r => (r.id === id ? { ...r, status: 'PENDING' as const, confirmed_at: null } : r))
+          );
+          showFeedback('error', (result as { success: false; error: string }).error);
+        }
+      } catch {
         setDataList(prev =>
           prev.map(r => (r.id === id ? { ...r, status: 'PENDING' as const, confirmed_at: null } : r))
         );
-        showFeedback('error', result.error);
+        showFeedback('error', 'حدث خطأ. يرجى المحاولة مجددًا.');
       }
     });
   }
@@ -107,12 +114,19 @@ export default function GroupTable({ registrations, groupNumber, groupLabel }: P
     showFeedback('success', 'تم إلغاء تأكيد التسجيل.');
 
     startTransition(async () => {
-      const result = await unconfirmRegistration(id);
-      if (!result.success) {
+      try {
+        const result = await unconfirmRegistration(id);
+        if (!result.success) {
+          setDataList(prev =>
+            prev.map(r => (r.id === id ? { ...r, status: 'CONFIRMED' as const } : r))
+          );
+          showFeedback('error', (result as { success: false; error: string }).error);
+        }
+      } catch {
         setDataList(prev =>
           prev.map(r => (r.id === id ? { ...r, status: 'CONFIRMED' as const } : r))
         );
-        showFeedback('error', result.error);
+        showFeedback('error', 'حدث خطأ. يرجى المحاولة مجددًا.');
       }
     });
   }
@@ -124,10 +138,15 @@ export default function GroupTable({ registrations, groupNumber, groupLabel }: P
     showFeedback('success', 'تم حذف التسجيل بنجاح.');
 
     startTransition(async () => {
-      const result = await deleteRegistration(targetId);
-      if (!result.success) {
+      try {
+        const result = await deleteRegistration(targetId);
+        if (!result.success) {
+          setDataList(prev => [...prev, target]);
+          showFeedback('error', (result as { success: false; error: string }).error);
+        }
+      } catch {
         setDataList(prev => [...prev, target]);
-        showFeedback('error', result.error);
+        showFeedback('error', 'حدث خطأ أثناء الحذف. يرجى المحاولة مجددًا.');
       }
     });
   }
