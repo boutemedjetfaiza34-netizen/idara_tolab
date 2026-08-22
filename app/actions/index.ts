@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-import { createClient, createAdminClient, isSupabaseConfigured } from '@/lib/supabase/server';
+import { getDirectSupabase } from '@/lib/supabase/server';
 import {
   getLocalRegistrations,
   saveLocalRegistration,
@@ -50,12 +50,11 @@ export async function registerStudent(
   }
 
   const groupLabel = group === 'GROUP_1' ? 'الفوج 1' : 'الفوج 2';
+  const supabase = getDirectSupabase();
 
   // 1. Supabase Mode (Primary)
-  if (isSupabaseConfigured()) {
+  if (supabase) {
     try {
-      const supabase = await createClient();
-
       // Check if student already registered in this group
       const { data: existingRecords } = await supabase
         .from('registrations')
@@ -73,13 +72,16 @@ export async function registerStudent(
       }
 
       // Insert new record into Supabase
-      const { error: insertError } = await supabase.from('registrations').insert({
-        first_name: first_name.trim(),
-        last_name: last_name.trim(),
-        phone: cleanPhone,
-        group,
-        status: 'PENDING',
-      });
+      const { data: inserted, error: insertError } = await supabase
+        .from('registrations')
+        .insert({
+          first_name: first_name.trim(),
+          last_name: last_name.trim(),
+          phone: cleanPhone,
+          group,
+          status: 'PENDING',
+        })
+        .select();
 
       if (insertError) {
         if (insertError.code === '23505') {
@@ -147,10 +149,10 @@ export async function checkStudentRegistration(
   group: RegistrationGroup
 ): Promise<{ exists: boolean; registration?: Registration }> {
   const cleanPhone = phone.replace(/\s/g, '').trim();
+  const supabase = getDirectSupabase();
 
-  if (isSupabaseConfigured()) {
+  if (supabase) {
     try {
-      const supabase = await createClient();
       const { data } = await supabase
         .from('registrations')
         .select('*')
@@ -178,9 +180,10 @@ export async function checkStudentRegistration(
 // =======================================
 
 export async function getRegistrations(group: RegistrationGroup): Promise<ActionResult<Registration[]>> {
-  if (isSupabaseConfigured()) {
+  const supabase = getDirectSupabase();
+
+  if (supabase) {
     try {
-      const supabase = await createAdminClient();
       const { data, error } = await supabase
         .from('registrations')
         .select('*')
@@ -190,8 +193,9 @@ export async function getRegistrations(group: RegistrationGroup): Promise<Action
       if (!error && data !== null) {
         return { success: true, data: data as Registration[] };
       }
+      console.error('getRegistrations error from Supabase:', error);
     } catch (err) {
-      console.error('getRegistrations Supabase error:', err);
+      console.error('getRegistrations exception:', err);
     }
   }
 
@@ -201,9 +205,10 @@ export async function getRegistrations(group: RegistrationGroup): Promise<Action
 }
 
 export async function getStats(): Promise<ActionResult<Stats>> {
-  if (isSupabaseConfigured()) {
+  const supabase = getDirectSupabase();
+
+  if (supabase) {
     try {
-      const supabase = await createAdminClient();
       const { data, error } = await supabase.from('registrations').select('group, status');
       if (!error && data !== null) {
         const all = data as { group: RegistrationGroup; status: string }[];
@@ -222,8 +227,9 @@ export async function getStats(): Promise<ActionResult<Stats>> {
           },
         };
       }
+      console.error('getStats Supabase error:', error);
     } catch (err) {
-      console.error('getStats Supabase error:', err);
+      console.error('getStats exception:', err);
     }
   }
 
@@ -244,10 +250,11 @@ export async function getStats(): Promise<ActionResult<Stats>> {
 }
 
 export async function confirmRegistration(id: string): Promise<ActionResult> {
+  const supabase = getDirectSupabase();
+
   // 1. Supabase Update
-  if (isSupabaseConfigured()) {
+  if (supabase) {
     try {
-      const supabase = await createAdminClient();
       const { error } = await supabase
         .from('registrations')
         .update({ status: 'CONFIRMED', confirmed_at: new Date().toISOString() })
@@ -255,6 +262,7 @@ export async function confirmRegistration(id: string): Promise<ActionResult> {
 
       if (error) {
         console.error('Supabase confirm error:', error);
+        return { success: false, error: 'فشل تأكيد التسجيل في قاعدة البيانات.' };
       }
     } catch (err) {
       console.error('Supabase confirm exception:', err);
@@ -274,10 +282,11 @@ export async function confirmRegistration(id: string): Promise<ActionResult> {
 }
 
 export async function unconfirmRegistration(id: string): Promise<ActionResult> {
+  const supabase = getDirectSupabase();
+
   // 1. Supabase Update
-  if (isSupabaseConfigured()) {
+  if (supabase) {
     try {
-      const supabase = await createAdminClient();
       const { error } = await supabase
         .from('registrations')
         .update({ status: 'PENDING', confirmed_at: null })
@@ -285,6 +294,7 @@ export async function unconfirmRegistration(id: string): Promise<ActionResult> {
 
       if (error) {
         console.error('Supabase unconfirm error:', error);
+        return { success: false, error: 'فشل إلغاء التأكيد في قاعدة البيانات.' };
       }
     } catch (err) {
       console.error('Supabase unconfirm exception:', err);
@@ -304,10 +314,11 @@ export async function unconfirmRegistration(id: string): Promise<ActionResult> {
 }
 
 export async function deleteRegistration(id: string): Promise<ActionResult> {
+  const supabase = getDirectSupabase();
+
   // 1. Supabase Delete
-  if (isSupabaseConfigured()) {
+  if (supabase) {
     try {
-      const supabase = await createAdminClient();
       const { error } = await supabase.from('registrations').delete().eq('id', id);
 
       if (error) {
