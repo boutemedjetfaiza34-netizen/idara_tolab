@@ -17,8 +17,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const groupInfo = GROUP_MAP[group];
   if (!groupInfo) return {};
   return {
-    title: `التسجيل في ${groupInfo.label} — دروس الدعم`,
-    description: `سجّل في ${groupInfo.label} لدروس الدعم في العلوم الطبيعية مع الأستاذة بوتمجت فايزة.`,
+    title: `تأكيد تسجيل القائمة الاحتياطية — ${groupInfo.label} | دروس الدعم`,
+    description: `تأكيد تسجيل القائمة الاحتياطية في ${groupInfo.label} لدروس الدعم في العلوم الطبيعية مع الأستاذة بوتمجت فايزة.`,
   };
 }
 

@@ -13,12 +13,12 @@ interface Props {
   groupLabel: string;
 }
 
-type FilterStatus = 'ALL' | 'PENDING' | 'CONFIRMED';
+type FilterStatus = 'ALL' | 'CONFIRMED' | 'PENDING';
 type SortOrder = 'desc' | 'asc';
 
 const STATUS_LABELS: Record<string, string> = {
-  PENDING: 'التسجيل الأولي',
-  CONFIRMED: 'تم تأكيد التسجيل',
+  PENDING: 'مقعد احتياطي',
+  CONFIRMED: 'مقبول',
 };
 
 export default function GroupTable({ registrations, groupNumber, groupLabel }: Props) {
@@ -82,12 +82,16 @@ export default function GroupTable({ registrations, groupNumber, groupLabel }: P
     return data;
   }, [dataList, searchName, searchFamily, searchPhone, filterStatus, sortOrder]);
 
+  // Counts
+  const acceptedCount = useMemo(() => dataList.filter(r => r.status === 'CONFIRMED').length, [dataList]);
+  const reserveCount = useMemo(() => dataList.filter(r => r.status === 'PENDING').length, [dataList]);
+
   // Instant Optimistic Actions
-  function handleConfirm(id: string) {
+  function handleAcceptStudent(id: string) {
     setDataList(prev =>
       prev.map(r => (r.id === id ? { ...r, status: 'CONFIRMED' as const, confirmed_at: new Date().toISOString() } : r))
     );
-    showFeedback('success', 'تم تأكيد التسجيل بنجاح.');
+    showFeedback('success', 'تم قبول الطالب بنجاح ونقله إلى قائمة المقبولين.');
 
     startTransition(async () => {
       try {
@@ -107,11 +111,11 @@ export default function GroupTable({ registrations, groupNumber, groupLabel }: P
     });
   }
 
-  function handleUnconfirm(id: string) {
+  function handleMoveToReserve(id: string) {
     setDataList(prev =>
       prev.map(r => (r.id === id ? { ...r, status: 'PENDING' as const, confirmed_at: null } : r))
     );
-    showFeedback('success', 'تم إلغاء تأكيد التسجيل.');
+    showFeedback('success', 'تم نقل الطالب إلى القائمة الاحتياطية.');
 
     startTransition(async () => {
       try {
@@ -179,6 +183,42 @@ export default function GroupTable({ registrations, groupNumber, groupLabel }: P
         </div>
       </div>
 
+      {/* Group Summary Badges */}
+      <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
+        <div style={{
+          background: 'white',
+          border: '1.5px solid var(--color-primary-100)',
+          borderRadius: 'var(--radius-lg)',
+          padding: 'var(--space-2) var(--space-4)',
+          fontSize: 'var(--font-size-sm)',
+          fontWeight: 700,
+        }}>
+          إجمالي المسجلين: <strong style={{ color: 'var(--color-gray-900)' }}>{dataList.length}</strong>
+        </div>
+        <div style={{
+          background: 'var(--color-primary-50)',
+          border: '1.5px solid var(--color-primary-200)',
+          borderRadius: 'var(--radius-lg)',
+          padding: 'var(--space-2) var(--space-4)',
+          fontSize: 'var(--font-size-sm)',
+          fontWeight: 700,
+          color: 'var(--color-primary)',
+        }}>
+          المقبولون: <strong>{acceptedCount}</strong>
+        </div>
+        <div style={{
+          background: '#fff7ed',
+          border: '1.5px solid #fed7aa',
+          borderRadius: 'var(--radius-lg)',
+          padding: 'var(--space-2) var(--space-4)',
+          fontSize: 'var(--font-size-sm)',
+          fontWeight: 700,
+          color: '#c2410c',
+        }}>
+          القائمة الاحتياطية: <strong>{reserveCount}</strong>
+        </div>
+      </div>
+
       {/* Feedback Alert */}
       {feedback && (
         <div className={`alert alert-${feedback.type}`} style={{ marginBottom: 'var(--space-4)' }}>
@@ -230,9 +270,9 @@ export default function GroupTable({ registrations, groupNumber, groupLabel }: P
               onChange={e => setFilterStatus(e.target.value as FilterStatus)}
               id="filter-status"
             >
-              <option value="ALL">جميع الحالات</option>
-              <option value="PENDING">التسجيل الأولي</option>
-              <option value="CONFIRMED">تم التأكيد</option>
+              <option value="ALL">جميع الطلبة ({dataList.length})</option>
+              <option value="CONFIRMED">المقبولون ({acceptedCount})</option>
+              <option value="PENDING">القائمة الاحتياطية ({reserveCount})</option>
             </select>
             <select
               className="filter-select"
@@ -253,7 +293,7 @@ export default function GroupTable({ registrations, groupNumber, groupLabel }: P
             <div className="empty-state-text">
               {dataList.length === 0
                 ? `لا توجد تسجيلات في ${groupLabel} حاليًا.`
-                : 'لا توجد نتائج تطابق البحث.'}
+                : 'لا توجد نتائج تطابق معايير الفلترة أو البحث.'}
             </div>
           </div>
         ) : (
@@ -264,8 +304,7 @@ export default function GroupTable({ registrations, groupNumber, groupLabel }: P
                 <thead>
                   <tr>
                     <th>#</th>
-                    <th>الاسم</th>
-                    <th>اللقب</th>
+                    <th>الاسم واللقب</th>
                     <th>رقم الهاتف</th>
                     <th>الحالة</th>
                     <th>تاريخ التسجيل</th>
@@ -273,127 +312,148 @@ export default function GroupTable({ registrations, groupNumber, groupLabel }: P
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((reg, index) => (
-                    <tr key={reg.id}>
-                      <td className="td-number">{index + 1}</td>
-                      <td className="td-name">{reg.first_name}</td>
-                      <td className="td-name">{reg.last_name}</td>
-                      <td className="td-phone">
-                        <a href={`tel:${reg.phone}`} style={{ color: 'inherit' }}>
-                          {reg.phone}
-                        </a>
-                      </td>
-                      <td>
-                        <span className={`status-badge ${reg.status === 'CONFIRMED' ? 'confirmed' : 'pending'}`}>
-                          {reg.status === 'CONFIRMED' ? '✅' : '⏳'} {STATUS_LABELS[reg.status]}
-                        </span>
-                      </td>
-                      <td className="td-date" suppressHydrationWarning>
-                        {new Date(reg.created_at).toLocaleString('fr-DZ', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </td>
-                      <td>
-                        <div className="td-actions">
-                          {reg.status === 'PENDING' ? (
+                  {filtered.map((reg, index) => {
+                    const isConfirmed = reg.status === 'CONFIRMED';
+                    return (
+                      <tr key={reg.id}>
+                        <td className="td-number">{index + 1}</td>
+                        <td className="td-name">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span>{reg.first_name} {reg.last_name}</span>
+                            {!isConfirmed && (
+                              <span className="badge-reserve">
+                                مقعد احتياطي
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="td-phone">
+                          <a href={`tel:${reg.phone}`} style={{ color: 'inherit' }}>
+                            {reg.phone}
+                          </a>
+                        </td>
+                        <td>
+                          <span className={`status-badge ${isConfirmed ? 'confirmed' : 'pending'}`}>
+                            {isConfirmed ? '✅ مقبول' : '📋 مقعد احتياطي'}
+                          </span>
+                        </td>
+                        <td className="td-date" suppressHydrationWarning>
+                          {new Date(reg.created_at).toLocaleString('fr-DZ', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </td>
+                        <td>
+                          <div className="td-actions">
+                            {!isConfirmed ? (
+                              <button
+                                type="button"
+                                className="btn btn-success"
+                                onClick={() => handleAcceptStudent(reg.id)}
+                                id={`accept-btn-${reg.id}`}
+                                title="قبول الطالب ونقله إلى قائمة المقبولين"
+                              >
+                                ✅ قبول الطالب
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="btn btn-warning"
+                                onClick={() => handleMoveToReserve(reg.id)}
+                                id={`reserve-btn-${reg.id}`}
+                                title="نقل الطالب إلى القائمة الاحتياطية"
+                              >
+                                ↩️ تحويل للاحتياط
+                              </button>
+                            )}
                             <button
                               type="button"
-                              className="btn btn-success"
-                              onClick={() => handleConfirm(reg.id)}
-                              id={`confirm-btn-${reg.id}`}
+                              className="btn btn-danger"
+                              onClick={() => setDeleteTarget(reg)}
+                              id={`delete-btn-${reg.id}`}
                             >
-                              ✅ تأكيد
+                              🗑️ حذف
                             </button>
-                          ) : (
-                            <button
-                              type="button"
-                              className="btn btn-warning"
-                              onClick={() => handleUnconfirm(reg.id)}
-                              id={`unconfirm-btn-${reg.id}`}
-                            >
-                              ↩️ إلغاء التأكيد
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            className="btn btn-danger"
-                            onClick={() => setDeleteTarget(reg)}
-                            id={`delete-btn-${reg.id}`}
-                          >
-                            🗑️ حذف
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
             {/* Mobile Cards View (Visible on mobile screens) */}
             <div className="mobile-cards-list">
-              {filtered.map((reg, index) => (
-                <div className="student-mobile-card" key={reg.id}>
-                  <div className="student-card-header">
-                    <div className="student-card-title-group">
-                      <span className="student-card-num">#{index + 1}</span>
-                      <strong className="student-card-name">{reg.first_name} {reg.last_name}</strong>
-                    </div>
-                    <span className={`status-badge ${reg.status === 'CONFIRMED' ? 'confirmed' : 'pending'}`}>
-                      {reg.status === 'CONFIRMED' ? '✅ مؤكد' : '⏳ أولي'}
-                    </span>
-                  </div>
-
-                  <div className="student-card-details">
-                    <a href={`tel:${reg.phone}`} className="student-phone-pill">
-                      <span>📞</span>
-                      <span dir="ltr">{reg.phone}</span>
-                    </a>
-                    <span className="student-date-pill" suppressHydrationWarning>
-                      <span>📅</span>
-                      <span suppressHydrationWarning>
-                        {new Date(reg.created_at).toLocaleString('fr-DZ', {
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+              {filtered.map((reg, index) => {
+                const isConfirmed = reg.status === 'CONFIRMED';
+                return (
+                  <div className="student-mobile-card" key={reg.id}>
+                    <div className="student-card-header">
+                      <div className="student-card-title-group" style={{ flexWrap: 'wrap' }}>
+                        <span className="student-card-num">#{index + 1}</span>
+                        <strong className="student-card-name">{reg.first_name} {reg.last_name}</strong>
+                        {!isConfirmed && (
+                          <span className="badge-reserve">
+                            مقعد احتياطي
+                          </span>
+                        )}
+                      </div>
+                      <span className={`status-badge ${isConfirmed ? 'confirmed' : 'pending'}`}>
+                        {isConfirmed ? '✅ مقبول' : '📋 احتياط'}
                       </span>
-                    </span>
-                  </div>
+                    </div>
 
-                  <div className="student-card-actions">
-                    {reg.status === 'PENDING' ? (
+                    <div className="student-card-details">
+                      <a href={`tel:${reg.phone}`} className="student-phone-pill">
+                        <span>📞</span>
+                        <span dir="ltr">{reg.phone}</span>
+                      </a>
+                      <span className="student-date-pill" suppressHydrationWarning>
+                        <span>📅</span>
+                        <span suppressHydrationWarning>
+                          {new Date(reg.created_at).toLocaleString('fr-DZ', {
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </span>
+                    </div>
+
+                    <div className="student-card-actions">
+                      {!isConfirmed ? (
+                        <button
+                          type="button"
+                          className="btn btn-success mobile-action-btn"
+                          onClick={() => handleAcceptStudent(reg.id)}
+                        >
+                          ✅ قبول الطالب (تحويل لمقبول)
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn-warning mobile-action-btn"
+                          onClick={() => handleMoveToReserve(reg.id)}
+                        >
+                          ↩️ تحويل للاحتياط
+                        </button>
+                      )}
                       <button
                         type="button"
-                        className="btn btn-success mobile-action-btn"
-                        onClick={() => handleConfirm(reg.id)}
+                        className="btn btn-danger mobile-delete-btn"
+                        onClick={() => setDeleteTarget(reg)}
                       >
-                        ✅ تأكيد التسجيل
+                        🗑️ حذف
                       </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn btn-warning mobile-action-btn"
-                        onClick={() => handleUnconfirm(reg.id)}
-                      >
-                        ↩️ إلغاء التأكيد
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="btn btn-danger mobile-delete-btn"
-                      onClick={() => setDeleteTarget(reg)}
-                    >
-                      🗑️ حذف
-                    </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </>
         )}

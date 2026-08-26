@@ -2,8 +2,8 @@ import * as XLSX from 'xlsx';
 import type { Registration } from './types';
 
 const STATUS_LABELS: Record<string, string> = {
-  PENDING: 'التسجيل الأولي',
-  CONFIRMED: 'تم تأكيد التسجيل',
+  PENDING: 'مقعد احتياطي',
+  CONFIRMED: 'مقبول',
 };
 
 export function exportToExcel(registrations: Registration[], groupNumber: 1 | 2): void {

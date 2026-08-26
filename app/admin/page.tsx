@@ -42,28 +42,28 @@ export default async function AdminDashboard() {
           <div className="stat-sub">في كلا الفوجين</div>
         </div>
 
+        <div className="stat-card confirmed">
+          <div className="stat-label">المقبولون</div>
+          <div className="stat-value">{stats.confirmedTotal}</div>
+          <div className="stat-sub">الطلبة المقبولون رسميًا</div>
+        </div>
+
+        <div className="stat-card pending">
+          <div className="stat-label">القائمة الاحتياطية</div>
+          <div className="stat-value">{stats.pendingTotal}</div>
+          <div className="stat-sub">مقاعد احتياطية في الانتظار</div>
+        </div>
+
         <div className="stat-card group1">
           <div className="stat-label">الفوج 1</div>
           <div className="stat-value">{stats.group1Total}</div>
-          <div className="stat-sub">إجمالي الطلبة</div>
+          <div className="stat-sub">{stats.group1Confirmed} مقبول · {stats.group1Pending} احتياط</div>
         </div>
 
         <div className="stat-card group2">
           <div className="stat-label">الفوج 2</div>
           <div className="stat-value">{stats.group2Total}</div>
-          <div className="stat-sub">إجمالي الطلبة</div>
-        </div>
-
-        <div className="stat-card pending">
-          <div className="stat-label">التسجيل الأولي</div>
-          <div className="stat-value">{stats.pendingTotal}</div>
-          <div className="stat-sub">في انتظار التأكيد</div>
-        </div>
-
-        <div className="stat-card confirmed">
-          <div className="stat-label">تم التأكيد</div>
-          <div className="stat-value">{stats.confirmedTotal}</div>
-          <div className="stat-sub">تم تأكيد التسجيل</div>
+          <div className="stat-sub">{stats.group2Confirmed} مقبول · {stats.group2Pending} احتياط</div>
         </div>
       </div>
 
@@ -84,16 +84,16 @@ export default async function AdminDashboard() {
               <div className="admin-group-stat-label">إجمالي</div>
             </div>
             <div className="admin-group-stat">
-              <div className="admin-group-stat-value" style={{ color: 'var(--color-pending)' }}>
-                {stats.group1Pending}
-              </div>
-              <div className="admin-group-stat-label">أولي</div>
-            </div>
-            <div className="admin-group-stat">
               <div className="admin-group-stat-value" style={{ color: 'var(--color-primary)' }}>
                 {stats.group1Confirmed}
               </div>
-              <div className="admin-group-stat-label">مؤكد</div>
+              <div className="admin-group-stat-label">مقبول</div>
+            </div>
+            <div className="admin-group-stat">
+              <div className="admin-group-stat-value" style={{ color: '#c2410c' }}>
+                {stats.group1Pending}
+              </div>
+              <div className="admin-group-stat-label">احتياط</div>
             </div>
           </div>
 
@@ -120,16 +120,16 @@ export default async function AdminDashboard() {
               <div className="admin-group-stat-label">إجمالي</div>
             </div>
             <div className="admin-group-stat">
-              <div className="admin-group-stat-value" style={{ color: 'var(--color-pending)' }}>
-                {stats.group2Pending}
-              </div>
-              <div className="admin-group-stat-label">أولي</div>
-            </div>
-            <div className="admin-group-stat">
               <div className="admin-group-stat-value" style={{ color: 'var(--color-primary)' }}>
                 {stats.group2Confirmed}
               </div>
-              <div className="admin-group-stat-label">مؤكد</div>
+              <div className="admin-group-stat-label">مقبول</div>
+            </div>
+            <div className="admin-group-stat">
+              <div className="admin-group-stat-value" style={{ color: '#c2410c' }}>
+                {stats.group2Pending}
+              </div>
+              <div className="admin-group-stat-label">احتياط</div>
             </div>
           </div>
 

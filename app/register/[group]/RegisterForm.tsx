@@ -68,7 +68,7 @@ export default function RegisterForm({ group, groupLabel, groupNumber }: Props) 
       });
 
       if (result.success) {
-        router.push(`/register/success?group=${group}`);
+        router.push(`/register/success?group=${group}&type=waitlist`);
       } else if (result.alreadyRegistered && result.existingRegistration) {
         setExistingStudent(result.existingRegistration);
       } else {
@@ -103,11 +103,11 @@ export default function RegisterForm({ group, groupLabel, groupNumber }: Props) 
               <>
                 <div style={{ fontSize: '3.5rem', marginBottom: 'var(--space-2)' }}>🎉</div>
                 <h1 className="form-title" style={{ color: 'var(--color-primary)' }}>
-                  أنت مسجل بالفعل!
+                  تم تأكيد تسجيلك بنجاح!
                 </h1>
                 <div style={{ margin: 'var(--space-3) 0' }}>
                   <span className="status-badge confirmed" style={{ fontSize: 'var(--font-size-sm)', padding: '6px 14px' }}>
-                    ✅ تم تأكيد تسجيلك رسميًا
+                    ✅ حالة التسجيل: مؤكد – القائمة الاحتياطية
                   </span>
                 </div>
 
@@ -125,22 +125,37 @@ export default function RegisterForm({ group, groupLabel, groupNumber }: Props) 
                     مرحبًا بك يا {existingStudent.first_name} {existingStudent.last_name} 👋
                   </p>
                   <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-gray-700)', marginBottom: 'var(--space-2)' }}>
-                    لقد تم <strong>قبول وتأكيد تسجيلك</strong> في <strong>{groupLabel}</strong> لدروس الدعم في العلوم الطبيعية مع الأستاذة <strong>بوتمجت فايزة</strong>.
+                    لقد تم تأكيد تسجيلك في <strong>القائمة الاحتياطية</strong> لـ <strong>{groupLabel}</strong> — دروس الدعم في العلوم الطبيعية مع الأستاذة <strong>بوتمجت فايزة</strong>.
                   </p>
                   <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-gray-500)', borderTop: '1px solid var(--color-primary-100)', paddingTop: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
                     <span>📞 رقم الهاتف: <strong dir="ltr">{existingStudent.phone}</strong></span>
                   </div>
                 </div>
+
+                {/* Waitlist warning */}
+                <div
+                  style={{
+                    background: '#fffbeb',
+                    border: '1.5px solid #fde68a',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: 'var(--space-4)',
+                    textAlign: 'right',
+                  }}
+                >
+                  <p style={{ fontSize: 'var(--font-size-xs)', color: '#92400e', lineHeight: 1.8 }}>
+                    ⚠️ تأكيد التسجيل في القائمة الاحتياطية لا يعني الحصول على مقعد بشكل نهائي، وإنما يؤكد رغبتك في الاستفادة من مقعد في حال توفره.
+                  </p>
+                </div>
               </>
             ) : (
               <>
-                <div style={{ fontSize: '3.5rem', marginBottom: 'var(--space-2)' }}>⏳</div>
+                <div style={{ fontSize: '3.5rem', marginBottom: 'var(--space-2)' }}>📋</div>
                 <h1 className="form-title" style={{ color: 'var(--color-pending)' }}>
-                  أنت مسجل مسبقًا
+                  طلبك في القائمة الاحتياطية
                 </h1>
                 <div style={{ margin: 'var(--space-3) 0' }}>
                   <span className="status-badge pending" style={{ fontSize: 'var(--font-size-sm)', padding: '6px 14px' }}>
-                    ⏳ التسجيل الأولي (قيد المراجعة)
+                    ⏳ القائمة الاحتياطية – قيد المراجعة
                   </span>
                 </div>
 
@@ -158,7 +173,7 @@ export default function RegisterForm({ group, groupLabel, groupNumber }: Props) 
                     مرحبًا بك يا {existingStudent.first_name} {existingStudent.last_name} 👋
                   </p>
                   <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-gray-700)', marginBottom: 'var(--space-2)' }}>
-                    طلب تسجيلك في <strong>{groupLabel}</strong> مسجل لدينا ومحفوظ بنجاح، وهو حاليًا <strong>في انتظار تأكيد الإدارة والأستاذة</strong>.
+                    طلب تسجيلك في القائمة الاحتياطية لـ <strong>{groupLabel}</strong> محفوظ بنجاح وهو حاليًا <strong>في انتظار مراجعة الإدارة والأستاذة</strong>.
                   </p>
                   <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-gray-500)', marginTop: 'var(--space-1)' }}>
                     لا داعي لإعادة التسجيل مرة أخرى، سيتم تأكيد طلبك قريبًا.
@@ -166,6 +181,21 @@ export default function RegisterForm({ group, groupLabel, groupNumber }: Props) 
                   <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-gray-500)', borderTop: '1px solid #fef3c7', paddingTop: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
                     <span>📞 رقم الهاتف: <strong dir="ltr">{existingStudent.phone}</strong></span>
                   </div>
+                </div>
+
+                {/* Waitlist warning */}
+                <div
+                  style={{
+                    background: 'var(--color-primary-50)',
+                    border: '1.5px solid var(--color-primary-200)',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: 'var(--space-4)',
+                    textAlign: 'right',
+                  }}
+                >
+                  <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-primary-dark)', lineHeight: 1.8 }}>
+                    ⚠️ تأكيد التسجيل في القائمة الاحتياطية لا يعني الحصول على مقعد بشكل نهائي، وإنما يؤكد رغبتك في الاستفادة من مقعد في حال توفره.
+                  </p>
                 </div>
               </>
             )}
@@ -204,15 +234,31 @@ export default function RegisterForm({ group, groupLabel, groupNumber }: Props) 
             <div className="form-logo-box">
               <img src="/logo.png" alt="Boutemdjet Logo" className="form-logo-img" />
             </div>
-            <h1 className="form-title">التسجيل في {groupLabel}</h1>
+            <h1 className="form-title">تأكيد التسجيل في القائمة الاحتياطية</h1>
             <p className="form-subtitle">
-              الأستاذة بوتمجت فايزة · علوم الطبيعة و الحياة
+              {groupLabel} · الأستاذة بوتمجت فايزة · علوم الطبيعة و الحياة
             </p>
           </div>
 
           <div className="form-badge">
             <span>📋</span>
-            <span>{groupLabel}</span>
+            <span>القائمة الاحتياطية · {groupLabel}</span>
+          </div>
+
+          {/* Waitlist info notice */}
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
+              border: '1.5px solid #fed7aa',
+              borderRadius: 'var(--radius-lg)',
+              padding: 'var(--space-4)',
+              marginBottom: 'var(--space-4)',
+              textAlign: 'right',
+            }}
+          >
+            <p style={{ fontSize: 'var(--font-size-xs)', color: '#92400e', lineHeight: 1.8, fontWeight: 600 }}>
+              ⚠️ تأكيد التسجيل في القائمة الاحتياطية لا يعني الحصول على مقعد بشكل نهائي، وإنما يؤكد رغبتك في الاستفادة من مقعد في حال توفره.
+            </p>
           </div>
 
           {errors.general && (
@@ -304,8 +350,8 @@ export default function RegisterForm({ group, groupLabel, groupNumber }: Props) 
                 </>
               ) : (
                 <>
-                  <span>✨</span>
-                  <span>تأكيد التسجيل</span>
+                  <span>📋</span>
+                  <span>تأكيد التسجيل في القائمة الاحتياطية</span>
                 </>
               )}
             </button>

@@ -1226,7 +1226,7 @@ tr:hover td {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  padding: 4px 10px;
+  padding: 4px 12px;
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);
   font-weight: 800;
@@ -1234,15 +1234,29 @@ tr:hover td {
 }
 
 .status-badge.pending {
-  background: var(--color-pending-bg);
-  color: var(--color-pending);
-  border: 1px solid var(--color-pending-border);
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1.5px solid #fed7aa;
 }
 
 .status-badge.confirmed {
   background: var(--color-confirmed-bg);
   color: var(--color-confirmed);
-  border: 1px solid var(--color-confirmed-border);
+  border: 1.5px solid var(--color-confirmed-border);
+}
+
+.badge-reserve {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1.5px solid #fed7aa;
+  border-radius: var(--radius-full);
+  padding: 2px 8px;
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 /* ============ Empty State ============ */

@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "id": "reg_1787424127284_ddze5",
+    "first_name": "سعيد",
+    "last_name": "نعيجي",
+    "phone": "0784181616",
+    "group": "GROUP_1",
+    "status": "PENDING",
+    "created_at": "2026-08-22T18:42:07.284Z",
+    "confirmed_at": null
+  }
+]
